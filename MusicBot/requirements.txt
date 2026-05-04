@@ -1,0 +1,50 @@
+# Core
+pyrogram==2.0.106
+TgCrypto==1.2.5
+pytgcalls==0.9.26
+
+# Database
+motor==3.3.2
+pymongo==4.6.1
+aioredis==2.0.1
+
+# Download
+yt-dlp>=2024.1.1
+
+# HTTP
+aiohttp==3.9.3
+
+# Logging
+loguru==0.7.2
+
+# Scheduler
+APScheduler==3.10.4
+
+# Image generation
+Pillow==10.2.0
+
+# Song recognition
+shazamio==0.4.0
+
+# AI
+# anthropic (optional, installed if ANTHROPIC_API_KEY set)
+# openai (optional, installed if OPENAI_API_KEY set)
+
+# Fuzzy matching (quiz)
+fuzzywuzzy==0.18.0
+python-Levenshtein==0.25.0
+
+# Env
+python-dotenv==1.0.1
+
+# Timezone
+pytz==2024.1
+
+# Optional Spotify
+spotipy==2.23.0
+
+# Build deps
+setuptools>=65.0
+
+# Web server for Mini App backend
+aiohttp>=3.9.3

@@ -1,0 +1,17 @@
+{
+  "play_searching": "Buscando: {query}",
+  "play_downloading": "Descargando: {title}",
+  "play_streaming": "Transmitiendo ahora...",
+  "play_queued": "Agregado a la cola: {title} — Posición: {pos}",
+  "now_playing": "Reproduciendo ahora",
+  "paused": "Reproducción pausada.",
+  "resumed": "Reproducción reanudada.",
+  "skipped": "Omitido.",
+  "stopped": "Reproducción detenida.",
+  "queue_empty": "La cola está vacía.",
+  "no_active_stream": "No hay transmisión activa.",
+  "lyrics_not_found": "Letra no encontrada para: {query}",
+  "identify_failed": "No se pudo identificar la canción.",
+  "error_download": "No se pudo descargar la pista.",
+  "error_no_results": "Sin resultados para: {query}"
+}

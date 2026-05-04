@@ -1,0 +1,31 @@
+version: "3.9"
+
+services:
+  musicbot:
+    build: .
+    restart: unless-stopped
+    env_file: .env
+    volumes:
+      - ./downloads:/app/downloads
+      - ./logs:/app/logs
+      - ./cookies.txt:/app/cookies.txt
+    depends_on:
+      - redis
+    networks:
+      - botnet
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+    networks:
+      - botnet
+
+volumes:
+  redis_data:
+
+networks:
+  botnet:
+    driver: bridge

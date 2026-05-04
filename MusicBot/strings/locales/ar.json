@@ -1,0 +1,17 @@
+{
+  "play_searching": "جارٍ البحث عن: {query}",
+  "play_downloading": "جارٍ التنزيل: {title}",
+  "play_streaming": "يبث الآن...",
+  "play_queued": "تمت الإضافة إلى قائمة الانتظار: {title} — الموضع: {pos}",
+  "now_playing": "يشغل الآن",
+  "paused": "تم إيقاف التشغيل مؤقتًا.",
+  "resumed": "استُؤنف التشغيل.",
+  "skipped": "تم التخطي.",
+  "stopped": "تم إيقاف التشغيل.",
+  "queue_empty": "قائمة الانتظار فارغة.",
+  "no_active_stream": "لا يوجد بث نشط.",
+  "lyrics_not_found": "لم يتم العثور على كلمات الأغنية: {query}",
+  "identify_failed": "لم يتم التعرف على الأغنية.",
+  "error_download": "تعذّر تنزيل المسار.",
+  "error_no_results": "لا توجد نتائج لـ: {query}"
+}

@@ -1,0 +1,17 @@
+{
+  "play_searching": "খুঁজছি: {query}",
+  "play_downloading": "ডাউনলোড হচ্ছে: {title}",
+  "play_streaming": "এখন স্ট্রিমিং...",
+  "play_queued": "কিউতে যোগ হয়েছে: {title} — অবস্থান: {pos}",
+  "now_playing": "এখন বাজছে",
+  "paused": "বাজানো থামানো হয়েছে।",
+  "resumed": "বাজানো আবার শুরু হয়েছে।",
+  "skipped": "এড়িয়ে গেছে।",
+  "stopped": "বাজানো বন্ধ।",
+  "queue_empty": "কিউ খালি।",
+  "no_active_stream": "কোনো সক্রিয় স্ট্রিম নেই।",
+  "lyrics_not_found": "গানের কথা পাওয়া যায়নি: {query}",
+  "identify_failed": "গানটি শনাক্ত করা যায়নি।",
+  "error_download": "ট্র্যাক ডাউনলোড করা সম্ভব হয়নি।",
+  "error_no_results": "কোনো ফলাফল পাওয়া যায়নি: {query}"
+}

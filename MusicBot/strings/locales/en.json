@@ -1,0 +1,17 @@
+{
+  "play_searching": "Searching for: {query}",
+  "play_downloading": "Downloading: {title}",
+  "play_streaming": "Now streaming...",
+  "play_queued": "Added to queue: {title} — Position: {pos}",
+  "now_playing": "Now Playing",
+  "paused": "Playback paused.",
+  "resumed": "Playback resumed.",
+  "skipped": "Skipped. Playing next song...",
+  "stopped": "Playback stopped.",
+  "queue_empty": "The queue is empty.",
+  "no_active_stream": "No active stream.",
+  "lyrics_not_found": "Lyrics not found for: {query}",
+  "identify_failed": "Could not identify this song.",
+  "error_download": "Could not download this track.",
+  "error_no_results": "No results found for: {query}"
+}

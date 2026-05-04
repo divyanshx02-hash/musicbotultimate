@@ -1,0 +1,723 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MusicBot Player</title>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0f0f18;
+      --surface: #1a1a2e;
+      --surface2: #252540;
+      --accent: #00c878;
+      --accent2: #0088cc;
+      --text: #f0f0f0;
+      --text2: #9999bb;
+      --danger: #ff4444;
+      --radius: 16px;
+      --transition: 0.2s ease;
+    }
+
+    body.light {
+      --bg: #f2f2f7;
+      --surface: #ffffff;
+      --surface2: #e8e8f0;
+      --text: #1a1a2e;
+      --text2: #666688;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      min-height: 100vh;
+      overflow-x: hidden;
+      transition: background var(--transition), color var(--transition);
+    }
+
+    .container { max-width: 480px; margin: 0 auto; padding: 16px; }
+
+    /* Header */
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 0;
+      margin-bottom: 16px;
+    }
+    .header h1 { font-size: 20px; font-weight: 700; }
+    .theme-btn {
+      background: var(--surface2);
+      border: none;
+      border-radius: 50%;
+      width: 36px; height: 36px;
+      cursor: pointer;
+      font-size: 18px;
+      display: flex; align-items: center; justify-content: center;
+      color: var(--text);
+      transition: background var(--transition);
+    }
+
+    /* Now Playing Card */
+    .np-card {
+      background: linear-gradient(135deg, var(--surface), var(--surface2));
+      border-radius: var(--radius);
+      padding: 20px;
+      margin-bottom: 16px;
+      text-align: center;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.3);
+    }
+    .album-art {
+      width: 180px; height: 180px;
+      border-radius: 12px;
+      margin: 0 auto 16px;
+      object-fit: cover;
+      background: var(--surface2);
+      display: block;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+      transition: transform 0.3s ease;
+    }
+    .album-art.spinning {
+      animation: spin-slow 12s linear infinite;
+    }
+    @keyframes spin-slow {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+    .np-title {
+      font-size: 18px; font-weight: 700;
+      margin-bottom: 4px;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .np-artist {
+      font-size: 14px; color: var(--text2);
+      margin-bottom: 16px;
+    }
+    .platform-badge {
+      display: inline-block;
+      background: var(--accent);
+      color: #000;
+      font-size: 10px; font-weight: 700;
+      padding: 3px 10px;
+      border-radius: 20px;
+      text-transform: uppercase;
+      margin-bottom: 12px;
+    }
+
+    /* Progress bar */
+    .progress-wrap {
+      margin: 12px 0;
+    }
+    .progress-bar {
+      width: 100%; height: 4px;
+      background: var(--surface2);
+      border-radius: 2px;
+      overflow: hidden;
+      cursor: pointer;
+    }
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--accent), var(--accent2));
+      border-radius: 2px;
+      width: 0%;
+      transition: width 1s linear;
+    }
+    .progress-times {
+      display: flex; justify-content: space-between;
+      font-size: 11px; color: var(--text2);
+      margin-top: 4px;
+    }
+
+    /* Controls */
+    .controls {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+      margin: 16px 0;
+    }
+    .ctrl-btn {
+      background: none;
+      border: none;
+      color: var(--text2);
+      cursor: pointer;
+      font-size: 20px;
+      padding: 8px;
+      border-radius: 50%;
+      transition: all var(--transition);
+      display: flex; align-items: center; justify-content: center;
+    }
+    .ctrl-btn:hover { color: var(--text); background: var(--surface2); }
+    .ctrl-btn.primary {
+      background: var(--accent);
+      color: #000;
+      width: 56px; height: 56px;
+      font-size: 24px;
+    }
+    .ctrl-btn.primary:hover { background: #00e090; transform: scale(1.05); }
+    .ctrl-btn.active { color: var(--accent); }
+
+    /* Volume */
+    .volume-row {
+      display: flex; align-items: center; gap: 8px;
+      margin: 8px 0;
+    }
+    .volume-icon { font-size: 16px; color: var(--text2); }
+    .volume-slider {
+      flex: 1;
+      -webkit-appearance: none;
+      height: 4px;
+      background: var(--surface2);
+      border-radius: 2px;
+      outline: none;
+      cursor: pointer;
+    }
+    .volume-slider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 14px; height: 14px;
+      border-radius: 50%;
+      background: var(--accent);
+      cursor: pointer;
+    }
+
+    /* Tabs */
+    .tabs {
+      display: flex;
+      background: var(--surface);
+      border-radius: var(--radius);
+      padding: 4px;
+      margin-bottom: 16px;
+      gap: 4px;
+    }
+    .tab-btn {
+      flex: 1;
+      background: none;
+      border: none;
+      color: var(--text2);
+      padding: 8px;
+      border-radius: 12px;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 600;
+      transition: all var(--transition);
+    }
+    .tab-btn.active {
+      background: var(--accent);
+      color: #000;
+    }
+
+    /* Tab panels */
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
+
+    /* Queue */
+    .queue-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 12px;
+      background: var(--surface);
+      border-radius: 12px;
+      margin-bottom: 8px;
+      cursor: pointer;
+      transition: background var(--transition);
+    }
+    .queue-item:hover { background: var(--surface2); }
+    .queue-num {
+      min-width: 24px;
+      font-size: 13px;
+      color: var(--text2);
+      font-weight: 700;
+      text-align: center;
+    }
+    .queue-info { flex: 1; overflow: hidden; }
+    .queue-title {
+      font-size: 14px; font-weight: 600;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .queue-artist { font-size: 12px; color: var(--text2); }
+    .queue-duration { font-size: 12px; color: var(--text2); white-space: nowrap; }
+
+    /* Search */
+    .search-box {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+    .search-input {
+      flex: 1;
+      background: var(--surface);
+      border: 1.5px solid var(--surface2);
+      color: var(--text);
+      padding: 10px 14px;
+      border-radius: 12px;
+      font-size: 14px;
+      outline: none;
+      transition: border var(--transition);
+    }
+    .search-input:focus { border-color: var(--accent); }
+    .search-input::placeholder { color: var(--text2); }
+    .search-btn {
+      background: var(--accent);
+      border: none;
+      color: #000;
+      padding: 10px 16px;
+      border-radius: 12px;
+      cursor: pointer;
+      font-size: 14px; font-weight: 700;
+      transition: background var(--transition);
+    }
+    .search-btn:hover { background: #00e090; }
+    .search-result {
+      padding: 10px 12px;
+      background: var(--surface);
+      border-radius: 12px;
+      margin-bottom: 8px;
+      cursor: pointer;
+      transition: background var(--transition);
+    }
+    .search-result:hover { background: var(--surface2); }
+    .search-result-title { font-size: 14px; font-weight: 600; }
+    .search-result-artist { font-size: 12px; color: var(--text2); }
+
+    /* Effects */
+    .effects-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+    }
+    .effect-btn {
+      background: var(--surface);
+      border: 2px solid transparent;
+      color: var(--text);
+      padding: 10px 6px;
+      border-radius: 12px;
+      cursor: pointer;
+      font-size: 12px; font-weight: 600;
+      text-align: center;
+      transition: all var(--transition);
+    }
+    .effect-btn:hover { background: var(--surface2); }
+    .effect-btn.active {
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+
+    /* Loading / Empty */
+    .empty {
+      text-align: center;
+      color: var(--text2);
+      padding: 32px 16px;
+      font-size: 14px;
+    }
+    .loading-dots::after {
+      content: '...';
+      animation: dots 1s steps(4, end) infinite;
+    }
+    @keyframes dots {
+      0%, 20% { content: ''; }
+      40% { content: '.'; }
+      60% { content: '..'; }
+      80%, 100% { content: '...'; }
+    }
+
+    /* Animated waveform when playing */
+    .wave {
+      display: flex; align-items: flex-end; justify-content: center;
+      gap: 3px; height: 24px; margin-bottom: 8px;
+    }
+    .wave-bar {
+      width: 4px;
+      background: var(--accent);
+      border-radius: 2px;
+      animation: wave-anim 0.8s ease-in-out infinite;
+    }
+    .wave-bar:nth-child(1) { animation-delay: 0s; }
+    .wave-bar:nth-child(2) { animation-delay: 0.1s; }
+    .wave-bar:nth-child(3) { animation-delay: 0.2s; }
+    .wave-bar:nth-child(4) { animation-delay: 0.3s; }
+    .wave-bar:nth-child(5) { animation-delay: 0.4s; }
+    @keyframes wave-anim {
+      0%, 100% { height: 8px; }
+      50% { height: 24px; }
+    }
+    .wave.paused .wave-bar { animation-play-state: paused; }
+  </style>
+</head>
+<body>
+<div class="container">
+  <div class="header">
+    <h1>🎵 MusicBot</h1>
+    <button class="theme-btn" onclick="toggleTheme()" title="Toggle theme">☀️</button>
+  </div>
+
+  <!-- Now Playing Card -->
+  <div class="np-card">
+    <img class="album-art" id="albumArt" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' fill='%23252540'/%3E%3Ctext y='.9em' font-size='70' x='10'%3E🎵%3C/text%3E%3C/svg%3E" alt="Album Art">
+    <div class="wave" id="waveform">
+      <div class="wave-bar" style="height:8px"></div>
+      <div class="wave-bar" style="height:16px"></div>
+      <div class="wave-bar" style="height:24px"></div>
+      <div class="wave-bar" style="height:12px"></div>
+      <div class="wave-bar" style="height:20px"></div>
+    </div>
+    <div id="platformBadge" class="platform-badge">YouTube</div>
+    <div class="np-title" id="npTitle">Not Playing</div>
+    <div class="np-artist" id="npArtist">—</div>
+
+    <div class="progress-wrap">
+      <div class="progress-bar" id="progressBar">
+        <div class="progress-fill" id="progressFill"></div>
+      </div>
+      <div class="progress-times">
+        <span id="timeElapsed">0:00</span>
+        <span id="timeDuration">0:00</span>
+      </div>
+    </div>
+
+    <!-- Controls -->
+    <div class="controls">
+      <button class="ctrl-btn" onclick="sendAction('prev')" title="Previous">⏮</button>
+      <button class="ctrl-btn" id="shuffleBtn" onclick="toggleShuffle()" title="Shuffle">🔀</button>
+      <button class="ctrl-btn primary" id="playPauseBtn" onclick="togglePlayPause()" title="Play/Pause">⏸</button>
+      <button class="ctrl-btn" id="loopBtn" onclick="cycleLoop()" title="Loop">🔁</button>
+      <button class="ctrl-btn" onclick="sendAction('skip')" title="Skip">⏭</button>
+    </div>
+
+    <!-- Volume -->
+    <div class="volume-row">
+      <span class="volume-icon">🔉</span>
+      <input type="range" class="volume-slider" id="volumeSlider" min="0" max="200" value="100" oninput="onVolumeChange(this.value)">
+      <span class="volume-icon">🔊</span>
+    </div>
+  </div>
+
+  <!-- Tabs -->
+  <div class="tabs">
+    <button class="tab-btn active" onclick="switchTab('queue')">📋 Queue</button>
+    <button class="tab-btn" onclick="switchTab('search')">🔍 Search</button>
+    <button class="tab-btn" onclick="switchTab('effects')">🎛 Effects</button>
+  </div>
+
+  <!-- Queue Panel -->
+  <div class="tab-panel active" id="panel-queue">
+    <div id="queueList"><div class="empty">Loading queue<span class="loading-dots"></span></div></div>
+  </div>
+
+  <!-- Search Panel -->
+  <div class="tab-panel" id="panel-search">
+    <div class="search-box">
+      <input type="text" class="search-input" id="searchInput" placeholder="Search for a song..." onkeydown="if(event.key==='Enter')doSearch()">
+      <button class="search-btn" onclick="doSearch()">Search</button>
+    </div>
+    <div id="searchResults"></div>
+  </div>
+
+  <!-- Effects Panel -->
+  <div class="tab-panel" id="panel-effects">
+    <div class="effects-grid" id="effectsGrid"></div>
+  </div>
+</div>
+
+<script>
+  // ── Telegram WebApp Setup ─────────────────────────────────────────
+  const tg = window.Telegram && window.Telegram.WebApp;
+  if (tg) {
+    tg.ready();
+    tg.expand();
+  }
+
+  // ── Theme ─────────────────────────────────────────────────────────
+  function applyTheme() {
+    const scheme = tg ? tg.colorScheme : 'dark';
+    if (scheme === 'light') {
+      document.body.classList.add('light');
+    } else {
+      document.body.classList.remove('light');
+    }
+  }
+  applyTheme();
+  if (tg) tg.onEvent('themeChanged', applyTheme);
+
+  function toggleTheme() {
+    document.body.classList.toggle('light');
+  }
+
+  // ── State ─────────────────────────────────────────────────────────
+  let state = {
+    isPlaying: false,
+    isPaused: false,
+    loopMode: 'off',
+    shuffle: false,
+    volume: 100,
+    effect: 'Normal',
+    elapsed: 0,
+    duration: 0,
+    chatId: null,
+  };
+
+  const EFFECTS = ['Normal','Bass Boost','Nightcore','Vaporwave','8D Audio','Lofi','Crystal Clear','Deep Bass','Treble Boost'];
+
+  // ── Init ──────────────────────────────────────────────────────────
+  function init() {
+    // Get chat_id from URL params or initDataUnsafe
+    const params = new URLSearchParams(window.location.search);
+    state.chatId = params.get('chat_id');
+    if (tg && tg.initDataUnsafe && tg.initDataUnsafe.start_param) {
+      state.chatId = state.chatId || tg.initDataUnsafe.start_param.replace('chat_', '');
+    }
+
+    renderEffects();
+    fetchNowPlaying();
+    fetchQueue();
+    setInterval(fetchNowPlaying, 3000);
+    setInterval(tickProgress, 1000);
+  }
+
+  // ── Fetch Now Playing ─────────────────────────────────────────────
+  async function fetchNowPlaying() {
+    if (!state.chatId) return;
+    try {
+      const url = `/webapp/nowplaying?chat_id=${state.chatId}`;
+      const resp = await fetch(url);
+      if (!resp.ok) return;
+      const data = await resp.json();
+      updateNowPlaying(data);
+    } catch (e) {}
+  }
+
+  function updateNowPlaying(data) {
+    const np = data.now_playing;
+    state.isPlaying = data.is_active;
+    state.isPaused = np && np.paused;
+    state.volume = data.volume || 100;
+    state.loopMode = data.loop || 'off';
+    state.effect = data.effect || 'Normal';
+
+    if (np) {
+      document.getElementById('npTitle').textContent = np.title || 'Unknown';
+      document.getElementById('npArtist').textContent = np.artist || '—';
+      document.getElementById('platformBadge').textContent = (np.platform || 'YouTube').toUpperCase();
+      state.duration = np.duration || 0;
+      if (np.thumbnail) {
+        document.getElementById('albumArt').src = np.thumbnail;
+      }
+      document.getElementById('timeDuration').textContent = formatTime(state.duration);
+    } else {
+      document.getElementById('npTitle').textContent = 'Not Playing';
+      document.getElementById('npArtist').textContent = '—';
+    }
+
+    const playBtn = document.getElementById('playPauseBtn');
+    const waveform = document.getElementById('waveform');
+    const albumArt = document.getElementById('albumArt');
+
+    if (state.isPlaying && !state.isPaused) {
+      playBtn.textContent = '⏸';
+      waveform.classList.remove('paused');
+      albumArt.classList.add('spinning');
+    } else {
+      playBtn.textContent = '▶️';
+      waveform.classList.add('paused');
+      albumArt.classList.remove('spinning');
+    }
+
+    document.getElementById('volumeSlider').value = state.volume;
+    updateLoopBtn();
+    renderEffects();
+  }
+
+  // ── Fetch Queue ───────────────────────────────────────────────────
+  async function fetchQueue() {
+    if (!state.chatId) return;
+    try {
+      const resp = await fetch(`/webapp/queue?chat_id=${state.chatId}`);
+      if (!resp.ok) return;
+      const data = await resp.json();
+      renderQueue(data.queue || []);
+    } catch (e) {}
+  }
+
+  function renderQueue(queue) {
+    const list = document.getElementById('queueList');
+    if (!queue.length) {
+      list.innerHTML = '<div class="empty">Queue is empty</div>';
+      return;
+    }
+    list.innerHTML = queue.map((t, i) => `
+      <div class="queue-item" onclick="skipToQueue(${i})">
+        <div class="queue-num">${i + 1}</div>
+        <div class="queue-info">
+          <div class="queue-title">${esc(t.title || 'Unknown')}</div>
+          <div class="queue-artist">${esc(t.artist || '')}</div>
+        </div>
+        <div class="queue-duration">${formatTime(t.duration || 0)}</div>
+      </div>
+    `).join('');
+  }
+
+  // ── Progress ──────────────────────────────────────────────────────
+  function tickProgress() {
+    if (state.isPlaying && !state.isPaused && state.duration > 0) {
+      state.elapsed = Math.min(state.elapsed + 1, state.duration);
+      const pct = (state.elapsed / state.duration) * 100;
+      document.getElementById('progressFill').style.width = pct + '%';
+      document.getElementById('timeElapsed').textContent = formatTime(state.elapsed);
+    }
+  }
+
+  // ── Controls ──────────────────────────────────────────────────────
+  async function sendAction(action, extra = {}) {
+    if (!state.chatId) return;
+    try {
+      await fetch('/webapp/action', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action, chat_id: state.chatId, ...extra }),
+      });
+      setTimeout(fetchNowPlaying, 500);
+    } catch (e) {}
+  }
+
+  function togglePlayPause() {
+    if (state.isPaused) {
+      sendAction('resume');
+      state.isPaused = false;
+    } else {
+      sendAction('pause');
+      state.isPaused = true;
+    }
+    const playBtn = document.getElementById('playPauseBtn');
+    playBtn.textContent = state.isPaused ? '▶️' : '⏸';
+  }
+
+  function toggleShuffle() {
+    state.shuffle = !state.shuffle;
+    const btn = document.getElementById('shuffleBtn');
+    btn.classList.toggle('active', state.shuffle);
+    if (tg) tg.sendData(JSON.stringify({ action: 'shuffle', chat_id: state.chatId }));
+  }
+
+  function cycleLoop() {
+    const modes = ['off', 'one', 'all'];
+    const i = modes.indexOf(state.loopMode);
+    state.loopMode = modes[(i + 1) % modes.length];
+    sendAction('loop', { mode: state.loopMode });
+    updateLoopBtn();
+  }
+
+  function updateLoopBtn() {
+    const btn = document.getElementById('loopBtn');
+    const icons = { off: '🔁', one: '🔂', all: '🔁' };
+    btn.textContent = icons[state.loopMode] || '🔁';
+    btn.classList.toggle('active', state.loopMode !== 'off');
+  }
+
+  let volTimeout;
+  function onVolumeChange(val) {
+    state.volume = parseInt(val);
+    clearTimeout(volTimeout);
+    volTimeout = setTimeout(() => {
+      sendAction('volume', { volume: state.volume });
+    }, 300);
+  }
+
+  function skipToQueue(index) {
+    if (tg) {
+      tg.sendData(JSON.stringify({ action: 'skipto', chat_id: state.chatId, index }));
+      tg.showAlert('Skip to position ' + (index + 1) + ' requested.');
+    }
+  }
+
+  // ── Search ────────────────────────────────────────────────────────
+  async function doSearch() {
+    const q = document.getElementById('searchInput').value.trim();
+    if (!q) return;
+    const container = document.getElementById('searchResults');
+    container.innerHTML = '<div class="empty">Searching<span class="loading-dots"></span></div>';
+    try {
+      const resp = await fetch(`/webapp/search?q=${encodeURIComponent(q)}&chat_id=${state.chatId}`);
+      if (!resp.ok) {
+        container.innerHTML = '<div class="empty">Search not available</div>';
+        return;
+      }
+      const data = await resp.json();
+      const results = data.results || [];
+      if (!results.length) {
+        container.innerHTML = '<div class="empty">No results found</div>';
+        return;
+      }
+      container.innerHTML = results.map(r => `
+        <div class="search-result" onclick="playSearch('${esc(r.title)}','${esc(r.url||'')}')">
+          <div class="search-result-title">${esc(r.title)}</div>
+          <div class="search-result-artist">${esc(r.artist || r.uploader || '')} · ${formatTime(r.duration||0)}</div>
+        </div>
+      `).join('');
+    } catch (e) {
+      // Fallback: send data to bot via sendData
+      container.innerHTML = '<div class="empty">Tap to search via bot</div>';
+      if (tg) {
+        tg.sendData(JSON.stringify({ action: 'search', query: q, chat_id: state.chatId }));
+      }
+    }
+  }
+
+  function playSearch(title, url) {
+    if (tg) {
+      tg.sendData(JSON.stringify({ action: 'play', query: title, url, chat_id: state.chatId }));
+      tg.showAlert(`Playing: ${title}`);
+    }
+  }
+
+  // ── Effects ───────────────────────────────────────────────────────
+  function renderEffects() {
+    const grid = document.getElementById('effectsGrid');
+    grid.innerHTML = EFFECTS.map(e => `
+      <button class="effect-btn ${e === state.effect ? 'active' : ''}" onclick="setEffect('${e}')">${e}</button>
+    `).join('');
+  }
+
+  function setEffect(name) {
+    state.effect = name;
+    sendAction('effect', { effect: name });
+    renderEffects();
+    if (tg) tg.showAlert(`Effect: ${name}`);
+  }
+
+  // ── Tabs ──────────────────────────────────────────────────────────
+  function switchTab(tab) {
+    document.querySelectorAll('.tab-btn').forEach((b, i) => {
+      const tabs = ['queue', 'search', 'effects'];
+      b.classList.toggle('active', tabs[i] === tab);
+    });
+    document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+    document.getElementById(`panel-${tab}`).classList.add('active');
+    if (tab === 'queue') fetchQueue();
+  }
+
+  // ── Helpers ───────────────────────────────────────────────────────
+  function formatTime(sec) {
+    sec = Math.floor(sec || 0);
+    const m = Math.floor(sec / 60);
+    const s = sec % 60;
+    return `${m}:${s.toString().padStart(2, '0')}`;
+  }
+
+  function esc(str) {
+    return String(str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  // ── Main Button ───────────────────────────────────────────────────
+  if (tg && tg.MainButton) {
+    tg.MainButton.setText('Open in Group');
+    tg.MainButton.show();
+    tg.MainButton.onClick(() => tg.close());
+  }
+
+  init();
+</script>
+</body>
+</html>

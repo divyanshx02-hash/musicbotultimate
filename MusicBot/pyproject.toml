@@ -1,0 +1,41 @@
+[build-system]
+requires = ["setuptools>=65.0"]
+build-backend = "setuptools.backends.legacy:build"
+
+[project]
+name = "musicbot"
+version = "1.0.0"
+description = "Advanced Free Telegram Music & Video Bot"
+requires-python = ">=3.11"
+dependencies = [
+    "pyrogram==2.0.106",
+    "TgCrypto==1.2.5",
+    "pytgcalls>=0.9.26",
+    "motor>=3.3.2",
+    "pymongo>=4.6.1",
+    "aioredis>=2.0.1",
+    "yt-dlp>=2024.1.1",
+    "aiohttp>=3.9.3",
+    "loguru>=0.7.2",
+    "APScheduler>=3.10.4",
+    "Pillow>=10.2.0",
+    "shazamio>=0.4.0",
+    "fuzzywuzzy>=0.18.0",
+    "python-Levenshtein>=0.25.0",
+    "python-dotenv>=1.0.1",
+    "pytz>=2024.1",
+    "spotipy>=2.23.0",
+]
+
+[project.optional-dependencies]
+ai = [
+    "anthropic>=0.20.0",
+    "openai>=1.12.0",
+]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["helpers*", "plugins*", "strings*"]
+
+[project.scripts]
+musicbot = "bot:main"

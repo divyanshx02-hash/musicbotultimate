@@ -1,0 +1,17 @@
+{
+  "play_searching": "खोज रहे हैं: {query}",
+  "play_downloading": "डाउनलोड हो रहा है: {title}",
+  "play_streaming": "अभी स्ट्रीमिंग...",
+  "play_queued": "कतार में जोड़ा गया: {title} — स्थान: {pos}",
+  "now_playing": "अभी बज रहा है",
+  "paused": "संगीत रोका गया।",
+  "resumed": "संगीत फिर शुरू हुआ।",
+  "skipped": "छोड़ दिया। अगला गाना...",
+  "stopped": "संगीत बंद।",
+  "queue_empty": "कतार खाली है।",
+  "no_active_stream": "कोई स्ट्रीम नहीं चल रही।",
+  "lyrics_not_found": "बोल नहीं मिले: {query}",
+  "identify_failed": "गाना पहचाना नहीं जा सका।",
+  "error_download": "ट्रैक डाउनलोड नहीं हो सका।",
+  "error_no_results": "कोई परिणाम नहीं: {query}"
+}
