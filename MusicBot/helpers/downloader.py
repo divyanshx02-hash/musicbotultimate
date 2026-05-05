@@ -17,6 +17,14 @@ from config import (
     VIDEO_API_URL,
 )
 
+_URL_PATTERN = re.compile(
+    r"https?://(?:[-\w.]|(?:%[\da-fA-F]{2}))+"
+)
+
+
+def is_valid_url(text: str) -> bool:
+    return bool(_URL_PATTERN.match(text.strip()))
+
 
 async def refresh_cookies():
     if not COOKIE_URL:

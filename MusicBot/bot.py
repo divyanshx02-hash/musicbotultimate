@@ -90,15 +90,15 @@ async def start_bot():
     for attempt in range(3):
         try:
             await db.connect()
-            logger.info("MongoDB connected")
+            logger.info("Database connected")
             break
         except Exception as e:
-            logger.error(f"MongoDB connection attempt {attempt+1} failed: {e}")
+            logger.error(f"Database connection attempt {attempt+1} failed: {e}")
             if attempt < 2:
                 await asyncio.sleep(5)
             else:
-                logger.critical("MongoDB connection failed after 3 attempts")
-                raise
+                logger.warning("Database connection failed — running without DB")
+                db = None
 
     # Initialize cache with retry
     cache = RedisCache()
@@ -112,8 +112,8 @@ async def start_bot():
             if attempt < 2:
                 await asyncio.sleep(5)
             else:
-                logger.critical("Redis connection failed after 3 attempts")
-                raise
+                logger.warning("Redis connection failed — running without cache")
+                cache = None
 
     # Refresh cookies on startup
     if STRING_SESSION:
@@ -195,7 +195,11 @@ async def start_bot():
 
 def _register_stream_end_handlers():
     """Register stream end callbacks on all assistant pytgcalls instances."""
-    from pytgcalls.types.input_stream import StreamEndedUpdate
+    try:
+        from pytgcalls.types.input_stream import StreamEndedUpdate
+    except ImportError:
+        logger.warning("pytgcalls not available — stream end handlers not registered")
+        return
 
     async def on_stream_end(client, update):
         try:
@@ -208,8 +212,9 @@ def _register_stream_end_handlers():
 
     for assistant in assistant_manager.assistants:
         try:
-            assistant.call.on_stream_end()(on_stream_end)
-            logger.debug(f"Registered stream end handler on assistant {assistant.index}")
+            if assistant.call:
+                assistant.call.on_stream_end()(on_stream_end)
+                logger.debug(f"Registered stream end handler on assistant {assistant.index}")
         except Exception as e:
             logger.error(f"Failed to register stream end handler: {e}")
 
@@ -228,9 +233,10 @@ async def _cleanup():
     logger.info("Cleaning up...")
 
     # Cancel background tasks
-    for task in _bg_tasks:
+    tasks_to_cancel = list(_bg_tasks)
+    for task in tasks_to_cancel:
         task.cancel()
-    for task in _bg_tasks:
+    for task in tasks_to_cancel:
         try:
             await task
         except asyncio.CancelledError:

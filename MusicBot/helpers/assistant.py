@@ -3,17 +3,18 @@ from typing import Optional
 
 from loguru import logger
 from pyrogram import Client
-from pytgcalls import PyTgCalls
-from pytgcalls.types import AudioPiped, VideoPiped, AudioImagePiped
-from pytgcalls.types.input_stream import InputAudioStream, InputVideoStream
-from pytgcalls.types.input_stream.quality import (
-    HighQualityAudio,
-    MediumQualityAudio,
-    HighQualityVideo,
-    MediumQualityVideo,
-)
 
 from config import API_HASH, API_ID, ASSISTANT_LEAVE_TIME, AUTO_LEAVING_ASSISTANT
+
+# Try to import pytgcalls — may not be available in all environments
+try:
+    from pytgcalls import PyTgCalls
+    from pytgcalls.types import AudioPiped, VideoPiped
+    from pytgcalls.types.input_stream.quality import HighQualityAudio, HighQualityVideo
+    HAS_PYTGCALLS = True
+except ImportError:
+    HAS_PYTGCALLS = False
+    logger.warning("pytgcalls not available — VC features disabled")
 
 
 class AssistantClient:
@@ -25,20 +26,23 @@ class AssistantClient:
             api_hash=api_hash,
             session_string=session,
         )
-        self.call = PyTgCalls(self.client)
+        self.call = None
         self.available = False
         self.active_chats: set[int] = set()
 
     async def start(self):
         await self.client.start()
-        await self.call.start()
+        if HAS_PYTGCALLS:
+            self.call = PyTgCalls(self.client)
+            await self.call.start()
         self.available = True
         me = await self.client.get_me()
         logger.info(f"Assistant {self.index} started: @{me.username}")
 
     async def stop(self):
         try:
-            await self.call.stop()
+            if self.call and HAS_PYTGCALLS:
+                await self.call.stop()
             await self.client.stop()
         except Exception as e:
             logger.error(f"Error stopping assistant {self.index}: {e}")
@@ -61,13 +65,15 @@ class AssistantClient:
 
     async def leave_vc(self, chat_id: int):
         try:
-            await self.call.leave_group_call(chat_id)
+            if self.call and HAS_PYTGCALLS:
+                await self.call.leave_group_call(chat_id)
             self.active_chats.discard(chat_id)
         except Exception as e:
             logger.error(f"Assistant {self.index} leave_vc error: {e}")
 
     async def play_audio(self, chat_id: int, stream_url: str, ffmpeg_args: list[str] = None):
-        from pytgcalls.types import AudioPiped
+        if not HAS_PYTGCALLS or not self.call:
+            raise RuntimeError("pytgcalls not available — VC playback disabled")
         self.active_chats.add(chat_id)
         await self.call.join_group_call(
             chat_id,
@@ -78,11 +84,11 @@ class AssistantClient:
                     " ".join(ffmpeg_args) if ffmpeg_args else ""
                 ),
             ),
-            stream_type=None,
         )
 
     async def play_video(self, chat_id: int, stream_url: str):
-        from pytgcalls.types import VideoPiped
+        if not HAS_PYTGCALLS or not self.call:
+            raise RuntimeError("pytgcalls not available — VC playback disabled")
         self.active_chats.add(chat_id)
         await self.call.join_group_call(
             chat_id,
@@ -94,6 +100,8 @@ class AssistantClient:
         )
 
     async def change_stream(self, chat_id: int, stream_url: str, ffmpeg_args: list[str] = None):
+        if not HAS_PYTGCALLS or not self.call:
+            raise RuntimeError("pytgcalls not available")
         await self.call.change_stream(
             chat_id,
             AudioPiped(
@@ -107,19 +115,22 @@ class AssistantClient:
 
     async def pause(self, chat_id: int):
         try:
-            await self.call.pause_stream(chat_id)
+            if self.call and HAS_PYTGCALLS:
+                await self.call.pause_stream(chat_id)
         except Exception as e:
             logger.error(f"Pause error for {chat_id}: {e}")
 
     async def resume(self, chat_id: int):
         try:
-            await self.call.resume_stream(chat_id)
+            if self.call and HAS_PYTGCALLS:
+                await self.call.resume_stream(chat_id)
         except Exception as e:
             logger.error(f"Resume error for {chat_id}: {e}")
 
     async def change_volume(self, chat_id: int, volume: int):
         try:
-            await self.call.change_volume_call(chat_id, volume)
+            if self.call and HAS_PYTGCALLS:
+                await self.call.change_volume_call(chat_id, volume)
         except Exception as e:
             logger.error(f"Volume change error for {chat_id}: {e}")
 
@@ -131,7 +142,7 @@ class AssistantManager:
             for i, s in enumerate(sessions)
             if s
         ]
-        self._chat_map: dict[int, int] = {}  # chat_id → assistant index
+        self._chat_map: dict[int, int] = {}  # chat_id -> assistant index
         self._round_robin = 0
 
     async def start_all(self):
@@ -157,7 +168,6 @@ class AssistantManager:
             for a in avail:
                 if a.index == idx:
                     return a
-        # Round-robin assignment
         a = avail[self._round_robin % len(avail)]
         self._round_robin += 1
         self._chat_map[chat_id] = a.index
@@ -182,7 +192,6 @@ class AssistantManager:
                 if not alive and a.available:
                     logger.warning(f"Assistant {a.index} unresponsive, marking unavailable")
                     a.available = False
-                    # Reassign chats that were using this assistant
                     for chat_id, idx in list(self._chat_map.items()):
                         if idx == a.index:
                             del self._chat_map[chat_id]
@@ -190,7 +199,6 @@ class AssistantManager:
                     logger.info(f"Assistant {a.index} recovered")
                     a.available = True
                 elif not alive and not a.available:
-                    # Try to restart unresponsive assistant
                     logger.info(f"Attempting to restart assistant {a.index}")
                     try:
                         await a.stop()
@@ -201,9 +209,12 @@ class AssistantManager:
                     except Exception as e:
                         logger.error(f"Failed to restart assistant {a.index}: {e}")
 
-    # ── High-level play interface ─────────────────────────────────────
+    # High-level play interface
 
     async def play_audio(self, chat_id: int, stream_url: str, ffmpeg_args: list[str] = None) -> bool:
+        if not HAS_PYTGCALLS:
+            logger.error("VC playback disabled — pytgcalls not installed")
+            return False
         assistant = self.get(chat_id)
         if not assistant:
             logger.error(f"No available assistant for chat {chat_id}")
@@ -216,6 +227,8 @@ class AssistantManager:
             return False
 
     async def play_video(self, chat_id: int, stream_url: str) -> bool:
+        if not HAS_PYTGCALLS:
+            return False
         assistant = self.get(chat_id)
         if not assistant:
             return False
@@ -227,6 +240,8 @@ class AssistantManager:
             return False
 
     async def change_stream(self, chat_id: int, stream_url: str, ffmpeg_args: list[str] = None) -> bool:
+        if not HAS_PYTGCALLS:
+            return False
         assistant = self.get(chat_id)
         if not assistant:
             return False

@@ -23,6 +23,9 @@ STRING_SESSION3: str = os.getenv("STRING_SESSION3", "")
 # Database
 MONGO_DB_URI: str = os.getenv("MONGO_DB_URI", "")
 REDIS_URL: str = os.getenv("REDIS_URL", "redis://localhost:6379")
+SUPABASE_URL: str = os.getenv("SUPABASE_URL", os.getenv("VITE_SUPABASE_URL", ""))
+SUPABASE_ANON_KEY: str = os.getenv("SUPABASE_ANON_KEY", os.getenv("VITE_SUPABASE_ANON_KEY", ""))
+SUPABASE_SERVICE_KEY: str = os.getenv("SUPABASE_SERVICE_KEY", os.getenv("SUPABASE_SERVICE_ROLE_KEY", ""))
 
 # Cookies
 COOKIE_URL: str = os.getenv("COOKIE_URL", "")
